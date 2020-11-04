@@ -30,7 +30,7 @@ class Client:
          manager). If it cannot find the keyring it will create a new one with the same name, give that you have
          provided the rm_code. If not it will raise an exception.
 
-         Once it has set the rm_code and device_id it will request the cloud for a Bearer Token which is needed for
+        Once it has set the rm_code and device_id it will request the cloud for a Bearer Token which is needed for
         sending requests to the cloud service
 
         Keyword arguments:
@@ -47,12 +47,15 @@ class Client:
             else:
                 print('Successfully got RM-code and device-ID from keyring')
         else:
-            self.rm_code = rm_code
             if not self.get_token_and_id_from_keyring():
                 self.generate_device_id()
                 self.set_new_key_ring()
             else:
-                print('Successfully got RM-code and device-ID from keyring')
+                if rm_code != self.rm_code:
+                    self.update_keyring_rm_code(rm_code)
+                    print('Updated to new rm-code')
+                else:
+                    print('Successfully got RM-code and device-ID from keyring')
 
         if not self.token:
             self.generate_bearer_token()
@@ -84,6 +87,10 @@ class Client:
             return True
         else:
             return False
+
+    def update_keyring_rm_code(self, rm_code):
+        keyring.set_password('pyRm', self.device_id, rm_code)
+        self.rm_code = rm_code
 
     def generate_bearer_token(self):
         """Register this application as new device and generates a new Bearer Authentication token."""
