@@ -1,6 +1,9 @@
 #This file contains functions for authorizing yourself for the RM-cloud
 
 #TODO: What more does this module do?
+#TODO: Implement logging of requests and responses
+#TODO: Implement testing?
+
 
 import requests
 import uuid
@@ -31,16 +34,20 @@ class Client:
                    'deviceDesc': self.device_desc,
                    'deviceID': self.device_id}
 
-        newToken = requests.post('https://my.remarkable.com/token/json/2/device/new', data=payload)
-
-        print('Newly generated token: {}'.format(newToken)) #TODO: Remove
-        self.token = newToken
-        return newToken
+        response = requests.post('https://my.remarkable.com/token/json/2/device/new', data=payload)
+        if not response.ok:
+            print('The request failed')
+        else:
+            new_token = str(response.content)
+            print('Newly generated token: {}'.format(new_token)) #TODO: Remove
+            self.token = new_token
+        return new_token
 
 
     def generate_device_id(self):
         """ Generates an UUID4 code which can be used as device identification towards the rm."""
         self.device_id = uuid.uuid4()
+        print('New UUID4: {}'.format(self.device_id))
 
     def refresh_token(self):
         """Refreshes the token (if it exists)"""
@@ -49,7 +56,20 @@ class Client:
             response = requests.post('https://my.remarkable.com/token/json/2/device/new', headers=header)
             print('Refresh response: {}'.format(response))
 
+    def request(self, verb, url, data={}, **kwargs):
+        """Send HTTP-requests to the cloud.
+
+        Keyword arguments:
+            verb[String] -- type of HTTP-request (GET, PUT, POST, ...) #TODO: What else
+            url[String] -- request url
+            data[String] - request data
+
+        Returns:
+             response[?] -- request response
+        """
+        pass
+
 
 if __name__ == '__main__':
     client = Client('YOUR RM CODE HERE')
-    
+
