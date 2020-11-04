@@ -1,5 +1,13 @@
 #This file contains functions for authorizing yourself for the RM-cloud
 
+#The only thing you need is to define the code for your remarkable.
+#
+#The module will store your code and your device-id as a keyring in the native keyring-manager, the first time you
+# launch it (only tested on Windows).
+#
+#Once it has created or fetched the information from the keyring, it will generate a Bearer Token used for communcation.
+
+
 #TODO: What more does this module do?
 #TODO: Implement logging of requests and responses
 #TODO: Implement testing?
@@ -15,18 +23,31 @@ class Client:
     Once the class has authorized the user to the cloud, it will store the bearer token that is needed
     for communicating with the cloud.
     """
-    def __init__(self, rm_code= '', token='', device_id='', device_desc='desktop-Windows'):
+    def __init__(self, rm_code='', token='', device_id=''):
+        """Intitializing the client.
+
+         It will first try to fetch the rm-code and device-id from a keyring called "pyRm"(see the native credidential
+         manager). If it cannot find the keyring it will create a new one with the same name, give that you have
+         provided the rm_code. If not it will raise an exception.
+
+         Once it has set the rm_code and device_id it will request the cloud for a Bearer Token which is needed for
+        sending requests to the cloud service
+
+        Keyword arguments:
+            rm_code[String] -- The code from your remarkable, generated at https://my.remarkable.com/connect/remarkable
+            token[String] -- the Bearer Token for the cloud service (TODO: May be removed)
+            device_id[String] - UUID4 identification for current device
+        """
         self.token = token
-        self.rm_code = rm_code
-        self.device_id = device_id
-        self.device_desc = device_desc
+        self.device_desc = 'desktop-windows'
 
         if not rm_code:
             if not self.get_token_and_id_from_keyring():
-                print('Please enter a valid RM code')
+                raise Exception('No rm_code provided')
             else:
                 print('Successfully got RM-code and device-ID from keyring')
         else:
+            self.rm_code = rm_code
             if not self.get_token_and_id_from_keyring():
                 self.generate_device_id()
                 self.set_new_key_ring()
