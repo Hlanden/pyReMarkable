@@ -1,6 +1,7 @@
 # pyReMarkable 
 Python API for interfacing with Remarkable-cloud appllication.
-NOTE: This is a work in progress, and is still missing a lot of functionality
+
+**NOTE: This is a work in progress, and is still missing a lot of functionality**
 
 The library contains the following python modules:
 ## client.py
