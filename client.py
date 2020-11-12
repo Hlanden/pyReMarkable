@@ -16,7 +16,6 @@
 import requests
 import uuid
 import keyring
-import browser_cookie3
 
 class Client:
     """Class for authorizing and requesting towards the cloud-server
