@@ -16,6 +16,7 @@
 import requests
 import uuid
 import keyring
+import browser_cookie3
 
 class Client:
     """Class for authorizing and requesting towards the cloud-server
@@ -23,7 +24,7 @@ class Client:
     Once the class has authorized the user to the cloud, it will store the bearer token that is needed
     for communicating with the cloud.
     """
-    def __init__(self, rm_code='', token='', device_id=''):
+    def __init__(self, rm_code='', token=''):
         """Intitializing the client.
 
          It will first try to fetch the rm-code and device-id from a keyring called "pyRm"(see the native credidential
@@ -39,28 +40,20 @@ class Client:
             device_id[String] - UUID4 identification for current device
         """
         self.token = token
+        self.device_id = ''
         self.device_desc = 'desktop-windows'
-
-        if not rm_code:
-            if not self.get_token_and_id_from_keyring():
-                raise Exception('No rm_code provided')
-            else:
-                print('Successfully got RM-code and device-ID from keyring')
-        else:
-            if not self.get_token_and_id_from_keyring():
+        self.rm_code = rm_code
+        print('Rm code: {}'.format(rm_code))
+        if not self.get_token_and_id_from_keyring() or rm_code:
+            self.rm_code = rm_code
+            if not self.device_id:
                 self.generate_device_id()
-                self.set_new_key_ring()
-            else:
-                if rm_code != self.rm_code:
-                    self.update_keyring_rm_code(rm_code)
-                    print('Updated to new rm-code')
-                else:
-                    print('Successfully got RM-code and device-ID from keyring')
-
-        if not self.token:
             self.generate_bearer_token()
+            self.set_new_key_ring()
         else:
-            self.refresh_token()
+            print('Successfully got RM-token and device-ID from keyring')
+
+        self.refresh_token()
 
     def get_token_and_id_from_keyring(self):
         """Get device id and rm-code from keyring
@@ -73,7 +66,7 @@ class Client:
             return False
         else:
             self.device_id = credentials.username
-            self.rm_code = credentials.password
+            self.token = credentials.password
             return True
 
     def set_new_key_ring(self):
@@ -81,31 +74,27 @@ class Client:
 
         :return: True if success else False
         """
-        if self.device_id and self.rm_code:
-            keyring.set_password('pyRm', self.device_id, self.rm_code)
-            print('New keyring created')
+        if self.device_id and self.token:
+            keyring.set_password('pyRm', self.device_id, self.token)
             return True
         else:
             return False
 
-    def update_keyring_rm_code(self, rm_code):
-        keyring.set_password('pyRm', self.device_id, rm_code)
-        self.rm_code = rm_code
+    def update_key_ring(self):
+        keyring.delete_password('pyRm', self.device_id)
+        keyring.set_password('pyRm', self.device_id, self.token)
 
     def generate_bearer_token(self):
         """Register this application as new device and generates a new Bearer Authentication token."""
         payload = {'code': self.rm_code,
                    'deviceDesc': self.device_desc,
-                   'deviceID': self.device_id}
+                   'deviceID': str(self.device_id)}
 
-        response = requests.post('https://my.remarkable.com/token/json/2/device/new', data=payload)
+        response = requests.post('https://my.remarkable.com/token/json/2/device/new', json=payload, headers={})
         if not response.ok:
-            print('The request failed')
+            raise Exception('Request failed, could not connect')
         else:
-            new_token = str(response.content)
-            print('Newly generated token: {}'.format(new_token)) #TODO: Remove
-            self.token = new_token
-            return new_token
+            self.token = response.content.decode('utf-8')
 
 
     def generate_device_id(self):
@@ -114,11 +103,17 @@ class Client:
         print('New UUID4: {}'.format(self.device_id))
 
     def refresh_token(self):
-        """Refreshes the token (if it exists)"""
+        """Refreshes the token (if it exists)
+
+        NOTE: This is only used to check connection, because you don't need to refresh tokens for remarkable (yet)"""
         if self.token is not None:
-            header = {'Authorization': 'Bearer ' + self.token}
-            response = requests.post('https://my.remarkable.com/token/json/2/device/new', headers=header)
-            print('Refresh response: {}'.format(response))
+            header = {'Authorization': 'Bearer {}'.format(self.token)}
+            response = requests.post('https://my.remarkable.com/token/json/2/user/new', headers=header)
+            if response.ok:
+                print('Connected to remarkable!')
+            else:
+                Exception('Failed to refresh token...')
+
 
     def request(self, verb, url, data={}, **kwargs):
         """Send HTTP-requests to the cloud.
@@ -135,7 +130,5 @@ class Client:
 
 
 if __name__ == '__main__':
-    client = Client('YOUR RM CODE HERE')
-
-
+    Client = Client(input('Enter RM code: '))
 
