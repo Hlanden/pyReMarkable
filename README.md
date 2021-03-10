@@ -10,4 +10,5 @@ Contains a client class for authorizing towards the reMarkable-cloud service. It
 ## List of TODOs:
   - Connect to RM [DONE]
   - Upload to RM
-  - Download from RM
+  - Download from RM [DONE]
+  - Convert from .rm to .pdf. This is the current bottleneck. I have not found any engines that can do this flawlessly...
